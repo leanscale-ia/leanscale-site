@@ -1,0 +1,520 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente de Agendamento — LeanScale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --ink:       #05070F;
+  --ink-900:   #0B1024;
+  --border-dk: rgba(255,255,255,0.09);
+  --text:      #F3F5FC;
+  --text-sec:  #AAB0C8;
+  --text-mut:  #5B617A;
+
+  --blue:      #305CFF;
+  --blue-lt:   #5C7FFF;
+  --blue-300:  #B6C6FF;
+
+  --gold:      #F7B928;
+  --gold-dk:   #CC8E10;
+
+  --white:     #FFFFFF;
+  --mist:      #F6F7FB;
+  --dark-text: #0B1024;
+  --body-text: #3E4358;
+  --muted:     #4A5068;
+  --border:    #E2E6F3;
+
+  --f:  'Bricolage Grotesque', system-ui, sans-serif;
+  --fm: 'JetBrains Mono', ui-monospace, monospace;
+  --ease: cubic-bezier(.25,.1,.25,1);
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--f);
+  -webkit-font-smoothing: antialiased;
+  background: var(--white);
+  color: var(--dark-text);
+  overflow-x: hidden;
+  font-size: 16px;
+  line-height: 1.6;
+}
+img, svg { display: block; }
+a { color: inherit; text-decoration: none; }
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 32px; }
+@media (max-width: 600px) { .wrap { padding: 0 20px; } }
+
+.sec       { padding: 96px 0; }
+.sec-white { background: var(--white); }
+.sec-mist  { background: var(--mist); }
+.sec-dark  { background: var(--ink); position: relative; overflow: hidden; }
+.sec-dark::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(900px 500px at 75% 60%, rgba(48,92,255,.09), transparent 60%);
+}
+.sec-z { position: relative; z-index: 1; }
+
+/* ═══════════════════════════════════════════
+   TYPOGRAPHY
+═══════════════════════════════════════════ */
+.tag {
+  display: inline-block;
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.tag-blue  { color: var(--blue); }
+.tag-ghost { color: rgba(255,255,255,.35); }
+
+.h2 {
+  font-size: clamp(28px, 4vw, 50px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+}
+.h2-light { color: var(--dark-text); }
+.h2-dark  { color: var(--text); }
+.h2 .g       { color: var(--gold); }
+.h2 .g-light { color: var(--gold-dk); }
+
+.body-lg {
+  font-size: 17px; font-weight: 300; line-height: 1.8;
+  color: var(--body-text); max-width: 580px;
+}
+.body-md {
+  font-size: 15px; line-height: 1.8;
+  color: var(--muted); max-width: 580px; margin-top: 12px;
+}
+.body-dk {
+  font-size: 15px; line-height: 1.8;
+  color: rgba(255,255,255,.42); max-width: 540px;
+}
+.body-dk strong { color: rgba(255,255,255,.78); font-weight: 600; }
+
+/* ═══════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════ */
+.hero {
+  background: var(--ink);
+  position: relative; overflow: hidden;
+  padding: 52px 0 0;
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(900px 550px at 95%  -5%, rgba(48,92,255,.20), transparent 55%),
+    radial-gradient(600px 450px at  -5% 65%, rgba(48,92,255,.11), transparent 55%);
+}
+.hero-inner { position: relative; z-index: 1; }
+
+.hero-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 64px;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-text {
+  font-size: 18px; font-weight: 400; letter-spacing: -0.03em; color: var(--text);
+}
+.logo-text span { color: var(--blue-300); }
+.hero-badge {
+  font-family: var(--fm); font-size: 11px; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--text-mut);
+}
+
+.hero-eyebrow {
+  font-family: var(--fm); font-size: 10px; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--blue-lt); margin-bottom: 18px;
+}
+.hero-h1 {
+  font-size: clamp(36px, 5.5vw, 68px);
+  font-weight: 700; line-height: 1.03; letter-spacing: -0.035em;
+  color: var(--text); margin-bottom: 22px; max-width: 720px;
+}
+.hero-h1 .g { color: var(--gold); }
+.hero-sub {
+  font-size: 17px; font-weight: 300; line-height: 1.7;
+  color: var(--text-sec); max-width: 460px; margin-bottom: 56px;
+}
+
+.hero-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--border-dk);
+}
+@media (max-width: 560px) { .hero-stats { grid-template-columns: repeat(2, 1fr); } }
+
+.hstat {
+  padding: 20px 16px;
+  border-right: 1px solid var(--border-dk);
+  text-align: center;
+}
+.hstat:last-child { border-right: none; }
+.hstat-k {
+  font-family: var(--fm); font-size: 9px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--text-mut); margin-bottom: 7px;
+}
+.hstat-v {
+  font-size: 24px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--text); line-height: 1;
+}
+.hstat-v em {
+  font-style: normal; color: var(--gold); font-family: var(--fm);
+  font-size: .62em; margin-left: 2px;
+}
+
+/* ═══════════════════════════════════════════
+   SCENARIO
+═══════════════════════════════════════════ */
+.gold-rule { width: 40px; height: 3px; background: var(--gold); border-radius: 2px; margin: 28px 0 24px; }
+.scenario {
+  background: var(--mist); border-left: 3px solid var(--blue);
+  border-radius: 0 14px 14px 0; padding: 28px 32px; margin-bottom: 40px;
+}
+.scenario-lbl {
+  font-family: var(--fm); font-size: 10px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--blue); margin-bottom: 12px;
+}
+.scenario p { font-size: 16px; line-height: 1.8; color: var(--body-text); }
+.scenario strong { color: var(--dark-text); font-weight: 700; }
+
+/* ═══════════════════════════════════════════
+   CAPABILITIES
+═══════════════════════════════════════════ */
+.caps-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin-top: 40px;
+}
+@media (max-width: 720px) { .caps-grid { grid-template-columns: 1fr; } }
+
+.ccard {
+  background: var(--mist); border-radius: 14px;
+  padding: 28px; border: 1px solid var(--border);
+  transition: border-color .2s var(--ease);
+}
+.ccard:hover { border-color: #c8cfe8; }
+.ccard-num {
+  font-family: var(--fm); font-size: 11px; font-weight: 600;
+  letter-spacing: .15em; color: var(--gold-dk); margin-bottom: 14px;
+}
+.ccard-name {
+  font-size: 17px; font-weight: 600; color: var(--dark-text);
+  margin-bottom: 10px; line-height: 1.3;
+}
+.ccard-desc { font-size: 14px; font-weight: 300; line-height: 1.7; color: var(--muted); }
+
+/* ═══════════════════════════════════════════
+   BUTTON
+═══════════════════════════════════════════ */
+.btn-wpp {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--gold); color: var(--ink);
+  padding: 18px 36px; border-radius: 12px;
+  font-size: 16px; font-weight: 700; text-decoration: none;
+  transition: opacity .18s var(--ease), transform .18s var(--ease);
+}
+.btn-wpp:hover { opacity: .9; transform: translateY(-1px); }
+
+/* ═══════════════════════════════════════════
+   CTA
+═══════════════════════════════════════════ */
+.sec-cta {
+  background: var(--ink-900); position: relative; overflow: hidden; padding: 96px 0;
+}
+.sec-cta::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(900px 600px at 50% -10%, rgba(48,92,255,.14), transparent 55%);
+}
+.contacts { display: flex; gap: 36px; flex-wrap: wrap; margin: 32px 0; }
+.contact-lbl {
+  font-family: var(--fm); font-size: 9px; letter-spacing: .2em;
+  text-transform: uppercase; color: rgba(255,255,255,.2); margin-bottom: 4px;
+}
+.contact-val { font-size: 14px; font-weight: 500; color: var(--text); }
+.cta-note { margin-top: 32px; font-family: var(--fm); font-size: 10px; color: rgba(255,255,255,.14); }
+
+/* ═══════════════════════════════════════════
+   FLOATING WHATSAPP
+═══════════════════════════════════════════ */
+.float-wpp {
+  position: fixed; bottom: 28px; right: 28px; z-index: 100;
+  background: #25D366; color: white;
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 4px 12px rgba(37,211,102,.45));
+  transition: transform .2s var(--ease), filter .2s;
+}
+.float-wpp:hover { transform: scale(1.08); filter: drop-shadow(0 6px 18px rgba(37,211,102,.55)); }
+
+/* ═══════════════════════════════════════════
+   SOBRE
+═══════════════════════════════════════════ */
+.sobre-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 64px; align-items: start;
+}
+@media (max-width: 760px) {
+  .sobre-grid { grid-template-columns: 1fr; gap: 40px; }
+  .sobre-right { border-left: none !important; padding-left: 0 !important; border-top: 1px solid var(--border); padding-top: 40px; }
+}
+.sobre-right { padding-left: 40px; border-left: 1px solid var(--border); }
+
+.col-title {
+  font-size: clamp(20px, 2.8vw, 28px);
+  font-weight: 700; line-height: 1.1; letter-spacing: -0.025em;
+  color: var(--dark-text); margin-bottom: 14px;
+}
+.tag-gold { color: var(--gold-dk); }
+
+.pillars { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+.pillar { display: flex; gap: 12px; align-items: flex-start; }
+.pillar-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue); flex-shrink: 0; margin-top: 8px;
+}
+.pillar-text { font-size: 14px; line-height: 1.65; color: var(--body-text); }
+.pillar-text strong { color: var(--dark-text); font-weight: 600; }
+
+.photo-wrap {
+  width: 120px; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); margin-bottom: 20px;
+}
+.photo-wrap img { width: 100%; height: auto; display: block; }
+
+.contact-strip {
+  background: var(--mist); border-radius: 12px;
+  padding: 18px 22px; margin-top: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.contact-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; color: var(--body-text);
+}
+.contact-row svg { flex-shrink: 0; color: var(--blue); }
+
+/* ═══════════════════════════════════════════
+   MOBILE
+═══════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .sec { padding: 64px 0; }
+  .hero { padding: 36px 0 0; }
+  .hero-nav { margin-bottom: 40px; }
+  .hero-badge { display: none; }
+  .hero-sub { font-size: 15px; margin-bottom: 40px; }
+  .scenario { padding: 20px; }
+  .scenario p { font-size: 15px; }
+  .ccard { padding: 22px 20px; }
+  .btn-wpp { padding: 16px 28px; font-size: 15px; }
+  .sec-cta { padding: 64px 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── FLOATING WHATSAPP ── -->
+<a href="https://wa.me/85999432365?text=Ol%C3%A1%20Marcus!%20Vi%20o%20agente%20de%20agendamento%20e%20quero%20saber%20mais." class="float-wpp" target="_blank" aria-label="WhatsApp">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
+<!-- ════════════════════════════════════════
+     SEÇÃO 1 — NARRATIVA / HOOK
+════════════════════════════════════════ -->
+<section class="hero">
+  <div class="wrap hero-inner">
+
+    <nav class="hero-nav">
+      <a class="logo" href="#">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="8" fill="rgba(48,92,255,0.12)"/>
+          <path d="M9 27V9h2.8v15.5H20V27H9z" fill="#B6C6FF"/>
+          <path d="M27 12C27 10 25.5 8.5 23.5 8.5C21.5 8.5 20 10 20 12C20 14 22 15 24 15.5C26 16 28 17 28 19.5C28 22 26 23.5 23.5 23.5C21 23.5 19.5 22 19.5 20" stroke="#305CFF" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="logo-text">Lean<span>Scale</span></span>
+      </a>
+      <span class="hero-badge">Para salões</span>
+    </nav>
+
+    <div class="hero-eyebrow">Agente de Agendamento</div>
+    <h1 class="hero-h1">
+      Seu salão fecha às 20h.<br>
+      Seus clientes mandam mensagem <span class="g">às 22h.</span>
+    </h1>
+    <p class="hero-sub">Cada mensagem sem resposta é um agendamento que o concorrente preencheu. A cada 5 minutos de silêncio, a chance de perder esse cliente aumenta 80%.</p>
+
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-k">Disponível</div>
+        <div class="hstat-v">24/7</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-k">Responde em</div>
+        <div class="hstat-v">&lt;30<em>s</em></div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-k">No-shows</div>
+        <div class="hstat-v">-50<em>%</em></div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-k">Folgas</div>
+        <div class="hstat-v">0</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     SEÇÃO 2 — O AGENTE
+════════════════════════════════════════ -->
+<section class="sec sec-white">
+  <div class="wrap">
+    <div class="tag tag-blue">O agente de agendamento</div>
+    <h2 class="h2 h2-light" style="max-width:560px;">Sábado, 23h14.<br>Um cliente pergunta sobre um horário para amanhã.</h2>
+    <div class="gold-rule"></div>
+    <div class="scenario">
+      <div class="scenario-lbl">O que acontece com o agente ativo</div>
+      <p>Em menos de 30 segundos, o cliente recebe resposta completa: serviços disponíveis, horários livres e confirmação do agendamento. No domingo de manhã, você abre o WhatsApp e vê: agenda preenchida, cliente confirmado, lembrete enviado. <strong>Você não fez nada. O agente fez.</strong></p>
+    </div>
+
+    <p class="body-lg">Treinado com os dados do seu negócio — serviços, preços, horários e profissionais. Responde no WhatsApp como se fosse parte da equipe, agenda em tempo real e manda os lembretes automaticamente.</p>
+
+    <div class="caps-grid">
+      <div class="ccard">
+        <div class="ccard-num">01</div>
+        <div class="ccard-name">Atende qualquer hora</div>
+        <p class="ccard-desc">Domingo de manhã, feriado, madrugada de sábado. Sem espera, sem "deixa eu verificar", sem cliente indo embora.</p>
+      </div>
+      <div class="ccard">
+        <div class="ccard-num">02</div>
+        <div class="ccard-name">Agenda em tempo real</div>
+        <p class="ccard-desc">Verifica disponibilidade, confirma o horário com o cliente e bloqueia a agenda. Sem dupla marcação, sem confusão.</p>
+      </div>
+      <div class="ccard">
+        <div class="ccard-num">03</div>
+        <div class="ccard-name">Lembra antes de cancelar</div>
+        <p class="ccard-desc">Envia confirmação automática e lembrete 24h antes do horário. No-shows caem até 50% nos primeiros 30 dias.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     SEÇÃO 3 — DEMO AO VIVO
+════════════════════════════════════════ -->
+<section class="sec sec-mist">
+  <div class="wrap">
+    <div class="tag tag-blue">Demo ao vivo</div>
+    <h2 class="h2 h2-light">
+      Conheça a Lina.<br>
+      <span class="g-light">Nossa especialista em agendamento.</span>
+    </h2>
+    <p class="body-md">Pergunte sobre horários, serviços ou agendamento — e veja como ela responde.</p>
+    <p style="font-size:12px; color:var(--muted); margin-top:8px; font-family:var(--fm); letter-spacing:.04em;">Inteligência artificial treinada para salões.</p>
+    <div style="margin-top:32px; border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(5,7,15,.08);">
+      <iframe src="https://app.gptmaker.ai/widget/3F1C6B891ABA837C4B5A2AB3EB70AD33/iframe" width="100%" style="height:600px; border:none; display:block;" frameborder="0"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     SEÇÃO 4 — SOBRE
+════════════════════════════════════════ -->
+<section class="sec sec-white">
+  <div class="wrap">
+    <div class="sobre-grid">
+
+      <!-- LeanScale -->
+      <div>
+        <div class="tag tag-blue">A empresa</div>
+        <h2 class="col-title">O que é a LeanScale</h2>
+        <p class="body-lg" style="max-width:100%;">Criamos agentes de IA customizados para pequenas e médias empresas — treinados com os dados reais do negócio, integrados ao WhatsApp e funcionando 24 horas por dia.</p>
+        <div class="pillars">
+          <div class="pillar">
+            <div class="pillar-dot"></div>
+            <div class="pillar-text"><strong>Implementação em até 14 dias.</strong> Do onboarding ao go-live sem complicação.</div>
+          </div>
+          <div class="pillar">
+            <div class="pillar-dot"></div>
+            <div class="pillar-text"><strong>Sem necessidade técnica.</strong> O cliente não precisa entender de IA para usar.</div>
+          </div>
+          <div class="pillar">
+            <div class="pillar-dot"></div>
+            <div class="pillar-text"><strong>Adaptado ao negócio.</strong> Cada agente é treinado com seus serviços, tom de voz e regras.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Marcus -->
+      <div class="sobre-right">
+        <div class="tag tag-gold">O fundador</div>
+        <div class="photo-wrap">
+          <img src="data:image/jpeg;base64,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" alt="Marcus — Fundador da LeanScale">
+        </div>
+        <h2 class="col-title">Marcus Campos</h2>
+        <p class="body-md" style="margin-top:0; max-width:100%;">Fundador da LeanScale, identifica gargalos operacionais em empresas e constrói soluções de IA que funcionam no dia a dia do negócio — não só no papel.</p>
+        <p class="body-md" style="max-width:100%;">A LeanScale nasceu de uma premissa: pequenas empresas merecem a mesma tecnologia de grandes corporações — acessível, simples de operar e com retorno real.</p>
+        <div class="contact-strip">
+          <div class="contact-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0121.73 15l.19 1.92z"/></svg>
+            <span>(85) 99943-2365</span>
+          </div>
+          <div class="contact-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>leanscaleia@gmail.com</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     SEÇÃO 5 — CTA
+════════════════════════════════════════ -->
+<section class="sec-cta">
+  <div class="wrap sec-z">
+    <div class="tag tag-ghost">Quer saber mais?</div>
+    <h2 class="h2 h2-dark">
+      Ficou interessado?<br>
+      É só <span class="g">chamar.</span>
+    </h2>
+    <p class="body-dk">Sem formulário. Sem compromisso. Uma conversa rápida para ver se faz sentido pro seu negócio.</p>
+    <div class="contacts">
+      <div>
+        <div class="contact-lbl">WhatsApp</div>
+        <div class="contact-val">(85) 99943-2365</div>
+      </div>
+      <div>
+        <div class="contact-lbl">E-mail</div>
+        <div class="contact-val">leanscaleia@gmail.com</div>
+      </div>
+    </div>
+    <a href="https://wa.me/85999432365?text=Ol%C3%A1%20Marcus!%20Vi%20o%20agente%20de%20agendamento%20e%20quero%20saber%20mais." class="btn-wpp" target="_blank">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Chamar no WhatsApp
+    </a>
+    <div class="cta-note">LeanScale · Inteligência artificial para quem quer crescer sem dobrar o custo</div>
+  </div>
+</section>
+
+</body>
+</html>
